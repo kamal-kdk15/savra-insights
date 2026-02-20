@@ -1,10 +1,10 @@
-// ── FILE: middleware.ts ───────────────────────────────────────────────────────
-// Protects all /dashboard routes.
-// If no valid session → redirect to /login automatically.
-// This runs on every request BEFORE the page renders — no flash of
-// unauthenticated content.
+import { withAuth } from "next-auth/middleware";
 
-export { default } from "next-auth/middleware";
+export default withAuth({
+  callbacks: {
+    authorized: ({ token }) => !!token,
+  },
+});
 
 export const config = {
   matcher: ["/dashboard/:path*"],
