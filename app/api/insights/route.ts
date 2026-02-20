@@ -3,12 +3,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
-
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { success: false, insights: [], error: "Missing GEMINI_API_KEY" },
+        { status: 500 }
+      );
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+
     const { context, scope, teacherName } = await req.json();
 
     if (!context) {
@@ -20,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const prompt =
       scope === "school"
-     ? `You are an academic performance analyst assisting a school principal.
+        ? `You are an academic performance analyst assisting a school principal.
 
 Analyze the aggregated school data below and generate executive-level insights.
 
@@ -29,34 +36,32 @@ ${context}
 Rules:
 - Return exactly 4 insights as a valid JSON array of strings.
 - Each insight must include: key pattern → what it means → one clear recommendation.
-- Each insight must focus on a different dimension (e.g., workload distribution, activity trends, subject balance, risk areas).
+- Each insight must focus on a different dimension.
 - Maximum 3 sentences per insight.
-- Keep language direct and strategic.
 - Avoid repetition.
 - Do NOT use markdown.
 - Return ONLY the JSON array.`
-       : `You are evaluating performance data for teacher ${teacherName}.
+        : `You are evaluating performance data for teacher ${teacherName}.
 
 Analyze the data below and return exactly 3 strategic insights.
 
 ${context}
 
 Rules:
-- Each insight must focus on a different dimension (e.g., productivity pattern, content distribution, grade responsibility).
+- Each insight must focus on a different dimension.
 - Each must include: pattern → implication → recommended action.
 - Maximum 3 sentences per insight.
-- Avoid repeating the same issue across insights.
+- Avoid repetition.
 - Do NOT use markdown.
 - Return ONLY a valid JSON array of 3 strings.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash", // ✅ CONFIRMED WORKING MODEL
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
     const rawText = response.text?.trim() || "";
 
-    // Gemini sometimes wraps JSON in ```json ... ```
     const cleanedText = rawText
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -82,7 +87,6 @@ Rules:
       success: true,
       insights,
     });
-
   } catch (err: any) {
     console.error("AI ERROR:", err);
 
