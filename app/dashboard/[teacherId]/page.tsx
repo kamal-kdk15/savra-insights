@@ -4,9 +4,10 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getTeacherById } from "@/lib/analytics";
-import { Sidebar }    from "@/components/Sidebar ";
-import { StatsCard }  from "@/components/StatsCard";
-import { WeeklyStats } from "@/lib/types";
+import { Sidebar }      from "@/components/Sidebar ";
+import { StatsCard }    from "@/components/StatsCard";
+import { WeeklyStats }  from "@/lib/types";
+import { InsightsPanel } from "@/components/InsightsPanel";
 
 const BADGE: Record<string, string> = {
   "Lesson Plan":    "bg-violet-100 text-violet-700",
@@ -72,6 +73,14 @@ export default function TeacherDetailPage({ params }: Props) {
   const subjects = [...new Set(teacher.activities.map((a) => a.subject))].join(", ");
   const initials = teacher.teacher_name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
+  // Build AI context string for this teacher
+  const aiContext = [
+    `Total activities: ${total}`,
+    `Lesson Plans: ${teacher.lessons} | Quizzes: ${teacher.quizzes} | Question Papers: ${teacher.questionPapers}`,
+    `Grades taught: ${grades.map(g => g.grade).join(", ")}`,
+    `Daily activity: ${chartData.map(d => `${d.week}: ${d.lessons + d.quizzes + d.questionPapers}`).join(", ")}`,
+  ].join("\n");
+
   return (
     <div className="flex min-h-screen bg-[#f7f6ff]">
       <Sidebar />
@@ -86,28 +95,36 @@ export default function TeacherDetailPage({ params }: Props) {
         </Link>
 
         {/* Teacher header */}
-        <div className="flex items-center gap-5 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-lg flex-shrink-0">
-            {initials}
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">{teacher.teacher_name}</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Subject: <span className="text-gray-600 font-medium">{subjects}</span>
-            </p>
-            <div className="flex gap-2 mt-2 flex-wrap">
-              {grades.map((g) => (
-                <span key={g.grade} className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
-                  Grade {g.grade}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="bg-violet-50 border border-violet-100 rounded-2xl px-6 py-3 text-center flex-shrink-0">
-            <p className="text-3xl font-bold text-violet-600">{total}</p>
-            <p className="text-xs text-violet-400 font-medium mt-0.5">Total Activities</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-8">
+  <div className="flex items-center gap-5">
+    <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-lg">
+      {initials}
+    </div>
+
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">
+        {teacher.teacher_name}
+      </h1>
+      <p className="text-sm text-gray-400 mt-1">
+        Subject: <span className="text-gray-600 font-medium">{subjects}</span>
+      </p>
+    </div>
+  </div>
+
+  <div className="bg-violet-50 border border-violet-100 rounded-2xl px-6 py-3 text-center">
+    <p className="text-3xl font-bold text-violet-600">{total}</p>
+    <p className="text-xs text-violet-400 font-medium mt-0.5">
+      Total Activities
+    </p>
+  </div>
+</div>
+<div className="mb-8">
+  <InsightsPanel
+    scope="teacher"
+    teacherName={teacher.teacher_name}
+    teacherContext={aiContext}
+  />
+</div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">

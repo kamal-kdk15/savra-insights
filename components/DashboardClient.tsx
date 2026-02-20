@@ -6,10 +6,11 @@
 
 import { useState } from "react";
 import { TeacherTotals, WeeklyStats } from "@/lib/types";
-import { Sidebar }      from "@/components/Sidebar ";
-import { StatsCard }    from "@/components/StatsCard";
-import { WeeklyChart }  from "@/components/WeeklyChart";
-import { TeacherTable } from "@/components/TeacherTable";
+import { Sidebar }        from "@/components/Sidebar ";
+import { StatsCard }      from "@/components/StatsCard";
+import { WeeklyChart }    from "@/components/WeeklyChart";
+import { TeacherTable }   from "@/components/TeacherTable";
+import { InsightsPanel }  from "@/components/InsightsPanel";
 
 interface Props {
   teachers:   TeacherTotals[];
@@ -119,9 +120,18 @@ export function DashboardClient({ teachers, weeklyData }: Props) {
           />
         </div>
 
-        {/* ── Weekly chart ───────────────────────────────────────────────── */}
-        <div className="mb-6">
-          <WeeklyChart data={weeklyData} />
+        {/* ── Weekly chart + AI Insights — 2/3 + 1/3 split ──────────────── */}
+        <div className="grid grid-cols-3 gap-5 mb-6">
+          <div className="col-span-2">
+            <WeeklyChart data={weeklyData} />
+          </div>
+          <div>
+            <InsightsPanel
+              scope="school"
+              teachers={teachers}
+              weeklyData={weeklyData}
+            />
+          </div>
         </div>
 
         {/* ── Teacher table — filtered by dropdown ──────────────────────── */}
