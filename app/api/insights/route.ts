@@ -1,22 +1,19 @@
-// app/api/insights/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.GEMINI_API_KEY) {
+    const { context, scope, teacherName, apiKey } = await req.json();
+
+    // Use key sent from client — no server-side key needed
+    const key = apiKey || process.env.GEMINI_API_KEY;
+
+    if (!key) {
       return NextResponse.json(
-        { success: false, insights: [], error: "Missing GEMINI_API_KEY" },
-        { status: 500 }
+        { success: false, insights: [], error: "No API key provided." },
+        { status: 400 }
       );
     }
-
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
-
-    const { context, scope, teacherName } = await req.json();
 
     if (!context) {
       return NextResponse.json(
@@ -24,6 +21,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const ai = new GoogleGenAI({ apiKey: key });
 
     const prompt =
       scope === "school"
@@ -41,6 +40,7 @@ Rules:
 - Avoid repetition.
 - Do NOT use markdown.
 - Return ONLY the JSON array.`
+
         : `You are evaluating performance data for teacher ${teacherName}.
 
 Analyze the data below and return exactly 3 strategic insights.
@@ -56,46 +56,31 @@ Rules:
 - Return ONLY a valid JSON array of 3 strings.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model:    "gemini-2.5-flash",
       contents: prompt,
     });
 
-    const rawText = response.text?.trim() || "";
-
-    const cleanedText = rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    const rawText     = response.text?.trim() || "";
+    const cleanedText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
 
     let insights: string[] = [];
 
     try {
       insights = JSON.parse(cleanedText);
     } catch {
-      console.error("JSON Parse Failed. Raw output:", rawText);
+      console.error("JSON parse failed. Raw output:", rawText);
       return NextResponse.json(
-        {
-          success: false,
-          insights: [],
-          error: "AI returned invalid JSON format",
-        },
+        { success: false, insights: [], error: "AI returned invalid format" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      insights,
-    });
-  } catch (err: any) {
-    console.error("AI ERROR:", err);
+    return NextResponse.json({ success: true, insights });
 
+  } catch (err: any) {
+    console.error("[POST /api/insights]", err);
     return NextResponse.json(
-      {
-        success: false,
-        insights: [],
-        error: err?.message || "AI request failed",
-      },
+      { success: false, insights: [], error: err?.message || "AI request failed" },
       { status: 500 }
     );
   }
